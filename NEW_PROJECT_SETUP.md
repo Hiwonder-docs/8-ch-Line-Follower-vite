@@ -280,6 +280,7 @@ https://wiki-test.hiwonder.com/projects/<项目名>/en/latest/
 - [ ] GitHub Pages 直连访问正常（`https://<用户名>.github.io/<仓库名>/...`）
 - [ ] 宝塔 Nginx 已添加 `location ^~ /projects/<项目名>/` 规则
 - [ ] Nginx 规则中 `proxy_pass` 无反引号
+- [ ] Nginx 规则中 `proxy_pass` 的 `<仓库名>` 与 git remote 一致（执行 `git remote -v` 确认，通常带 `-vite` 后缀）
 - [ ] Nginx 已重载
 - [ ] `https://wiki-test.hiwonder.com/projects/<项目名>/en/latest/` 访问正常
 
@@ -289,22 +290,33 @@ https://wiki-test.hiwonder.com/projects/<项目名>/en/latest/
 
 ### Q1: 访问报 502 Bad Gateway
 
-**原因**：Nginx 配置错误。
+**原因**：Nginx 配置错误，常见有两个坑：
+
+1. **反引号问题**：从文档复制代码时，`proxy_pass` URL 被反引号包裹——**这是最常见原因**
+2. **仓库名不匹配**：`<仓库名>`（GitHub 仓库名，通常带 `-vite` 后缀）与 `<项目名>`（URL 路由，不带后缀）混淆
 
 **检查**：
-1. `proxy_pass` 后面是否有多余的反引号（\`）——**这是最常见原因**
+1. `proxy_pass` 后面是否有多余的反引号（\`）
 2. `proxy_pass` 的 URL 是否正确：`https://hiwonder-docs.github.io/<仓库名>/projects/<项目名>/`
-3. `<仓库名>` 和 `<项目名>` 是否拼写正确
+3. `<仓库名>` 是否与 `git remote -v` 中的 origin 一致（通常带 `-vite` 后缀）
+4. 直接访问 `https://<用户名>.github.io/<仓库名>/projects/<项目名>/en/latest/` 验证 GitHub Pages 是否可访问
 
 **正确写法**：
 ```nginx
+# ✅ 无反引号 + 仓库名带 -vite 后缀（如果仓库名有后缀）
 proxy_pass https://hiwonder-docs.github.io/<仓库名>/projects/<项目名>/;
 ```
 
 **错误写法**（会 502）：
 ```nginx
+# ❌ 有反引号
 proxy_pass `https://hiwonder-docs.github.io/<仓库名>/projects/<项目名>/;`
+
+# ❌ 仓库名缺 -vite 后缀（假设仓库名是 xxx-vite）
+proxy_pass https://hiwonder-docs.github.io/<项目名>/projects/<项目名>/;
 ```
+
+**记忆口诀**：项目名不带 `-vite`，仓库名带 `-vite`，Nginx 的 `proxy_pass` 里两个名字不要搞反。
 
 ### Q2: 页面能打开但 CSS 丢失
 
